@@ -1,0 +1,249 @@
+/* LogSynth - AXA x Teenage Engineering Design System */
+
+/* Google Fonts - Industrial + Corporate (must be first) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Tailwind Base */
+@import "tailwindcss";
+
+/* === CSS Custom Properties (Design Tokens) === */
+:root {
+  /* Teenage Engineering - Industrial */
+  --te-bg: #F5F5F0;
+  --te-bg-dark: #E8E8E0;
+  --te-border: #1A1A1A;
+  --te-border-light: #D0D0D0;
+  --te-text: #0A0A0A;
+  --te-text-muted: #6B6B6B;
+
+  /* AXA Corporate */
+  --axa-blue: #00008F;
+  --axa-blue-dark: #000066;
+  --axa-blue-light: #3333A3;
+  --axa-red: #FF1721;
+  --axa-red-dark: #CC0000;
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', Consolas, Monaco, 'Courier New', monospace;
+  --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Grid & Spacing */
+  --grid-gap: 1px;
+  --panel-padding: 12px;
+}
+
+/* === Dark Mode Theme === */
+body.dark-mode {
+  --te-bg: #1A1A1A;
+  --te-bg-dark: #0F0F0F;
+  --te-border: #3A3A3A;
+  --te-border-light: #2A2A2A;
+  --te-text: #E8E8E8;
+  --te-text-muted: #888888;
+  
+  --axa-blue: #4D4DFF;
+  --axa-blue-light: #6666FF;
+  --axa-red: #FF4D4D;
+}
+
+/* === Base Reset & Typography === */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: var(--te-bg);
+  color: var(--te-text);
+  line-height: 1.4;
+}
+
+/* Search Highlight */
+.search-highlight,
+mark.search-highlight {
+  background-color: #FFEB3B;
+  color: #000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+body.dark-mode .search-highlight,
+body.dark-mode mark.search-highlight {
+  background-color: #FFC107;
+  color: #000;
+}
+
+/* Monospace for all data elements */
+code, pre, .mono, [data-monospace] {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+/* === Industrial Grid System === */
+.te-grid {
+  display: grid;
+  gap: var(--grid-gap);
+  background-color: var(--te-border);
+}
+
+.te-grid > * {
+  background-color: var(--te-bg);
+}
+
+.te-panel {
+  border: 1px solid var(--te-border);
+  background-color: var(--te-bg);
+  padding: var(--panel-padding);
+}
+
+.te-panel-header {
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--te-text-muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--te-border-light);
+  margin-bottom: 8px;
+}
+
+/* === AXA Diagonal Stripe (Loading/Separator) === */
+.axa-stripe {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--axa-red),
+    var(--axa-red) 2px,
+    transparent 2px,
+    transparent 10px
+  );
+  animation: diagonal-stripe 1s linear infinite;
+}
+
+@keyframes diagonal-stripe {
+  0% { background-position: 0 0; }
+  100% { background-position: 14px 14px; }
+}
+
+/* === Industrial Toggle Switch === */
+.te-toggle {
+  appearance: none;
+  width: 40px;
+  height: 20px;
+  background-color: var(--te-bg-dark);
+  border: 1px solid var(--te-border);
+  border-radius: 0;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.te-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background-color: var(--te-border);
+  transition: left 0.15s ease;
+}
+
+.te-toggle:checked {
+  background-color: var(--axa-blue);
+}
+
+.te-toggle:checked::after {
+  left: 22px;
+  background-color: white;
+}
+
+/* === Industrial Button === */
+.te-button {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 16px;
+  border: 1px solid var(--te-border);
+  background-color: var(--te-bg);
+  color: var(--te-text);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.te-button:hover {
+  background-color: var(--te-border);
+  color: var(--te-bg);
+}
+
+.te-button--primary {
+  background-color: var(--axa-blue);
+  border-color: var(--axa-blue);
+  color: white;
+}
+
+.te-button--primary:hover {
+  background-color: var(--axa-blue-dark);
+  border-color: var(--axa-blue-dark);
+}
+
+/* === Drop Zone === */
+.drop-zone {
+  border: 2px dashed var(--te-border-light);
+  background-color: var(--te-bg);
+  transition: all 0.15s ease;
+}
+
+.drop-zone:hover,
+.drop-zone--active {
+  border-color: var(--axa-blue);
+  background-color: rgba(0, 0, 143, 0.03);
+}
+
+.drop-zone--active {
+  animation: pulse-blue 1s ease-in-out infinite;
+}
+
+@keyframes pulse-blue {
+  0%, 100% { border-color: var(--axa-blue); }
+  50% { border-color: var(--axa-blue-light); }
+}
+
+/* === Scrollbar Styling === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--te-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--te-border-light);
+  border: 1px solid var(--te-bg-dark);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--te-text-muted);
+}
+
+/* === Syntax Highlighting === */
+.syntax-keyword { color: #0066CC; font-weight: 500; }
+.syntax-string { color: #067D17; }
+.syntax-number { color: #1750EB; }
+.syntax-boolean { color: #0033B3; font-weight: 500; }
+.syntax-null { color: #808080; font-style: italic; }
+.syntax-key { color: #6C3483; }
+.syntax-tag { color: #00008F; font-weight: 500; }
+.syntax-attribute { color: #994500; }
+.syntax-comment { color: #808080; font-style: italic; }

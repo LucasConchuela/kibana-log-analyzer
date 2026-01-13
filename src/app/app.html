@@ -1,0 +1,341 @@
+<!-- LogSynth - Enterprise Log Analyzer -->
+<div class="app-container">
+  <!-- Header Bar -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <svg class="logo-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 12H6L9 3L14 21L17 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"/>
+          <rect x="2" y="2" width="20" height="20" stroke="currentColor" stroke-width="2" stroke-opacity="0.2"/>
+        </svg>
+        <div class="logo-group">
+          <span class="logo-title">LOGSYNTH</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <!-- Dark Mode Toggle -->
+      <button class="theme-toggle" (click)="toggleDarkMode()" [title]="isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+        @if (isDarkMode()) {
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        } @else {
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        }
+      </button>
+      @if (hasLogs()) {
+        <span class="log-count">{{ logCount() }} ENTRIES</span>
+        <button class="te-button" (click)="clearLogs()">CLEAR</button>
+      }
+    </div>
+  </header>
+
+  <!-- Main Content Grid -->
+  <main class="main-grid" [class.has-inspector]="selectedEntry()">
+    <!-- Left Panel: Ingestor / Grid -->
+    <section class="content-area">
+      @if (!hasLogs()) {
+        <!-- Ingestor Drop Zone -->
+        <div 
+          class="ingestor"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+        >
+          <div 
+            class="drop-zone"
+            [class.drop-zone--active]="isDragOver()"
+          >
+            <div class="drop-zone-content">
+              <div class="drop-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <h2 class="drop-title">DROP LOG FILE</h2>
+              <p class="drop-subtitle">.json, .log, .txt, .ndjson</p>
+              <div class="drop-divider">
+                <span>OR</span>
+              </div>
+              <div class="button-group">
+                <label class="te-button te-button--primary file-button">
+                  SELECT FILE
+                  <input 
+                    type="file" 
+                    accept=".json,.log,.txt,.ndjson"
+                    (change)="onFileSelect($event)"
+                    hidden
+                  />
+                </label>
+                <button class="te-button" (click)="loadSampleData()">
+                  LOAD SAMPLE DATA
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <!-- Analyzer Grid -->
+        <div class="analyzer-grid">
+          <!-- Toolbar with Tab Switcher -->
+          <div class="grid-toolbar">
+            <div class="toolbar-left">
+              <!-- Main View Tabs -->
+              <div class="main-tabs">
+                <button 
+                  class="main-tab"
+                  [class.active]="mainView() === 'logs'"
+                  (click)="mainView.set('logs')"
+                >
+                  LOGS
+                </button>
+                <button 
+                  class="main-tab"
+                  [class.active]="mainView() === 'analytics'"
+                  (click)="mainView.set('analytics')"
+                >
+                  ANALYTICS
+                </button>
+              </div>
+              <span class="log-stats">
+                @if (searchService.hasActiveFilters()) {
+                  {{ filteredLogCount() }} / {{ logCount() }}
+                } @else {
+                  {{ logCount() }}
+                }
+                ENTRIES
+              </span>
+            </div>
+            <div class="toolbar-right">
+              @if (mainView() === 'logs') {
+                <button 
+                class="te-button"
+                [class.active]="showColumnSettings()"
+                (click)="toggleColumnSettings()"
+              >
+                COLUMNS
+              </button>
+              <div class="button-group">
+                <button class="te-button" (click)="exportJson()">JSON</button>
+                <button class="te-button" (click)="exportCsv()">CSV</button>
+              </div>
+              }
+            </div>
+          </div>
+
+          <!-- Search Toolbar (always visible) -->
+          <app-search-toolbar />
+
+          <!-- Conditional Content based on Main View -->
+          @if (mainView() === 'logs') {
+          @if (showColumnSettings()) {
+            <div class="column-settings">
+              <div class="te-panel-header">VISIBLE COLUMNS</div>
+              
+              <!-- Presets -->
+              <div class="presets-section">
+                <div class="preset-header">PRESETS</div>
+                <div class="preset-list">
+                  @for (preset of columnPresetService.getAllPresets(); track preset.id) {
+                    <button 
+                      class="preset-chip" 
+                      [class.active]="columnPresetService.activePresetId() === preset.id"
+                      (click)="loadPreset(preset)"
+                    >
+                      {{ preset.name }}
+                    </button>
+                  }
+                </div>
+                <!-- Save new preset -->
+                <div class="save-preset">
+                  <input #presetNameInput placeholder="Preset Name" class="te-input-small" (keydown.enter)="savePreset(presetNameInput.value); presetNameInput.value = ''">
+                  <button class="te-button-small" (click)="savePreset(presetNameInput.value); presetNameInput.value = ''">SAVE</button>
+                </div>
+              </div>
+
+              <div class="column-list">
+                @for (column of availableColumns(); track column) {
+                  <label class="column-option">
+                    <input 
+                      type="checkbox"
+                      class="te-toggle"
+                      [checked]="isColumnVisible(column)"
+                      (change)="toggleColumn(column)"
+                    />
+                    <span class="column-name">{{ column }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Data Table with Virtual Scrolling -->
+          <div class="table-container">
+            <!-- Sticky Header -->
+            <div class="table-header">
+              @for (column of visibleColumns(); track column) {
+                <div class="th" [ngStyle]="getColumnStyle(column)">
+                  {{ column }}
+                  <div class="resize-handle" (mousedown)="onResizeStart($event, column)"></div>
+                </div>
+              }
+            </div>
+            
+            <!-- Virtual Scroll Body -->
+            <cdk-virtual-scroll-viewport 
+              itemSize="32" 
+              class="virtual-scroll-viewport"
+            >
+              <div 
+                *cdkVirtualFor="let entry of filteredLogs(); trackBy: trackByLogId"
+                class="table-row"
+                [class]="getRowClass(entry)"
+                [class.selected]="selectedEntry()?._id === entry._id"
+                (click)="selectEntry(entry, $event)"
+              >
+                @for (column of visibleColumns(); track column; let i = $index) {
+                  <div 
+                    class="td" 
+                    [ngStyle]="getColumnStyle(column)"
+                    [title]="formatCellValue(entry[column]) + ' (Ctrl+Click to filter)'"
+                    (click)="onCellClick($event, column, entry[column])"
+                  >
+                    @if (i === 0) {
+                      <span 
+                        class="bookmark-star" 
+                        [class.active]="bookmarkService.isBookmarked(entry._id)"
+                        (click)="$event.stopPropagation(); bookmarkService.toggleBookmark(entry)"
+                        title="Bookmark entry"
+                      >★</span>
+                    }
+                    @if (column === 'http.method') {
+                      <span class="method-pill" [class]="'method-' + (entry[column] || '').toString().toLowerCase()">
+                        {{ entry[column] || '—' }}
+                      </span>
+                    } @else if (column === 'http.status_code') {
+                      <span class="status-pill" [class]="getStatusPillClass(entry[column])">
+                        {{ entry[column] || '—' }}
+                      </span>
+                    } @else {
+                      <span [innerHTML]="formatCellValueWithHighlight(entry[column])"></span>
+                    }
+                  </div>
+                }
+              </div>
+            </cdk-virtual-scroll-viewport>
+          </div>
+          } @else {
+            <!-- Analytics View -->
+            <app-analytics-panel />
+          }
+        </div>
+      }
+
+      <!-- Loading Overlay -->
+      @if (isLoading()) {
+        <div class="loading-overlay">
+          <div class="te-spinner"></div>
+          <span class="loading-text">LOADING DATA...</span>
+        </div>
+      }
+
+      <!-- Diff Viewer Modal -->
+      <app-diff-viewer />
+
+      <!-- Error Display -->
+      @if (error()) {
+        <div class="error-banner">
+          <span class="error-icon">⚠</span>
+          <span class="error-message">{{ error() }}</span>
+        </div>
+      }
+    </section>
+
+    <!-- Right Panel: Payload Inspector -->
+    @if (selectedEntry()) {
+      <aside class="inspector-panel">
+        <div class="inspector-header">
+          <span class="inspector-title">INSPECTOR</span>
+          <button class="te-button close-btn" (click)="closeInspector()">✕</button>
+        </div>
+
+        <!-- Tab Bar -->
+        @if (hasHttpData()) {
+          <div class="inspector-tabs">
+            <button 
+              class="tab-btn" 
+              [class.active]="inspectorTab() === 'http'"
+              (click)="setInspectorTab('http')"
+            >
+              HTTP
+            </button>
+            <button 
+              class="tab-btn" 
+              [class.active]="inspectorTab() === 'raw'"
+              (click)="setInspectorTab('raw')"
+            >
+              RAW
+            </button>
+          </div>
+        }
+
+        <div class="inspector-content">
+          <!-- HTTP Tab -->
+          @if (hasHttpData() && inspectorTab() === 'http') {
+            <app-http-viewer [httpData]="httpData()" />
+          }
+
+          <!-- Raw Tab / Default View -->
+          @if (!hasHttpData() || inspectorTab() === 'raw') {
+            <!-- Entry Metadata -->
+            <div class="metadata-section">
+              <div class="te-panel-header">METADATA</div>
+              <div class="metadata-grid">
+                <span class="meta-label">ID</span>
+                <span class="meta-value mono">{{ selectedEntry()!._id }}</span>
+                <span class="meta-label">TIME</span>
+                <span class="meta-value mono">{{ selectedEntry()!['@timestamp'] }}</span>
+                @if (selectedEntry()!.level) {
+                  <span class="meta-label">LEVEL</span>
+                  <span class="meta-value mono" [class]="'level-' + selectedEntry()!.level!.toLowerCase()">
+                    {{ selectedEntry()!.level }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Payload Viewer -->
+            @if (selectedPayload()) {
+              <div class="payload-section">
+                <app-payload-viewer 
+                  [content]="selectedPayload()!.content"
+                  [title]="selectedPayload()!.field.toUpperCase()"
+                />
+              </div>
+            }
+          }
+        </div>
+      </aside>
+    }
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <span class="system-status-text">SYSTEM ONLINE</span>
+    </div>
+  </footer>
+</div>
