@@ -329,6 +329,23 @@
   overflow: hidden;
   text-overflow: ellipsis;
   position: relative; /* For resize handle positioning */
+  user-select: none;
+  cursor: grab;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.table-header .th:active {
+  cursor: grabbing;
+}
+
+.table-header .th.dragging {
+  opacity: 0.4;
+  background-color: var(--te-bg-dark);
+}
+
+.table-header .th.drag-over {
+  border-left: 2px solid var(--axa-blue);
+  background-color: rgba(0, 0, 143, 0.05);
 }
 
 /* Resize Handle */

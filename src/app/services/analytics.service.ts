@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { LogParserService, LogEntry } from './log-parser.service';
 import { SearchService } from './search.service';
 
@@ -343,5 +343,108 @@ export class AnalyticsService {
         errorCount: data.errors,
         totalCount: data.total
       }));
+  });
+  /**
+   * Throughput (Requests per Minute)
+   */
+  readonly throughput = computed(() => {
+    const logs = this.filteredLogs();
+    if (logs.length < 2) return 0;
+
+    const times = logs
+      .map(l => new Date(l['@timestamp']).getTime())
+      .filter(t => !isNaN(t))
+      .sort((a, b) => a - b);
+    
+    if (times.length < 2) return 0;
+
+    const durationMinutes = (times[times.length - 1] - times[0]) / (1000 * 60);
+    return durationMinutes > 0 ? logs.length / durationMinutes : 0;
+  });
+
+  /**
+   * Histogram Bucket Size (ms)
+   */
+  readonly histogramBucketSize = signal(50);
+
+  /**
+   * Latency Distribution Histogram
+   */
+  readonly latencyHistogram = computed(() => {
+    const logs = this.filteredLogs();
+    const bucketSize = this.histogramBucketSize();
+    
+    if (logs.length === 0) return [];
+
+    const durations = logs
+      .map(l => l['http.duration_ms'] as number)
+      .filter(d => typeof d === 'number');
+
+    if (durations.length === 0) return [];
+
+    // Find range
+    const max = Math.max(...durations);
+    
+    // Create buckets map
+    const buckets = new Map<number, number>();
+    
+    // Fill buckets
+    for (const d of durations) {
+      const bucketStart = Math.floor(d / bucketSize) * bucketSize;
+      buckets.set(bucketStart, (buckets.get(bucketStart) || 0) + 1);
+    }
+
+    // Fill gaps (optional, but good for histogram to show 0s)
+    // For performance on sparse data, we might skip filling ALL gaps if range is huge,
+    // but filling gaps up to max makes the chart look correct (linear X axis).
+    // Let's fill gaps up to the max observed value.
+    const result = [];
+    // Round max up to next bucket boundary
+    const endBoundary = Math.ceil(max / bucketSize) * bucketSize;
+    
+    for (let start = 0; start <= endBoundary; start += bucketSize) {
+      result.push({
+        start,
+        end: start + bucketSize,
+        label: `${start}-${start + bucketSize}ms`,
+        count: buckets.get(start) || 0
+      });
+    }
+
+    return result;
+  });
+
+  /**
+   * HTTP Method Distribution
+   */
+  readonly methodDistribution = computed(() => {
+    const logs = this.filteredLogs();
+    const counts = new Map<string, number>();
+
+    for (const log of logs) {
+      if (log['http.method']) {
+        const method = (log['http.method'] as string).toUpperCase();
+        counts.set(method, (counts.get(method) || 0) + 1);
+      }
+    }
+
+    const total = logs.length;
+    const colors: Record<string, string> = {
+      'GET': '#2E7D32',
+      'POST': '#1565C0',
+      'PUT': '#E65100',
+      'DELETE': '#C62828',
+      'PATCH': '#7B1FA2',
+      'OPTIONS': '#455A64'
+    };
+
+    return Array.from(counts.entries())
+      .map(([method, count]) => ({
+        method,
+        count,
+        percentage: total > 0 ? (count / total) * 100 : 0,
+        color: colors[method] || '#888888'
+      }))
+      .sort((a, b) => b.count - a.count);
   });
 }

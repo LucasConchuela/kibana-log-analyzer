@@ -275,6 +275,69 @@ export class App {
     }
   }
 
+  // Column Reordering State
+  draggedColumn: string | null = null;
+  dragOverColumn: string | null = null;
+
+  // ... existing resizing methods ...
+
+  onColumnDragStart(event: DragEvent, column: string): void {
+    this.draggedColumn = column;
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', column);
+    }
+  }
+
+  onColumnDragOver(event: DragEvent, column: string): void {
+    // Only allow drop if we are dragging a column
+    if (this.draggedColumn && this.draggedColumn !== column) {
+      event.preventDefault(); // Necessary to allow dropping
+      this.dragOverColumn = column;
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+    }
+  }
+
+  onColumnDragLeave(event: DragEvent): void {
+    // Optional: could clear dragOverColumn, but checking target is safer to avoid flicker
+    // this.dragOverColumn = null;
+  }
+
+  onColumnDrop(event: DragEvent, targetColumn: string): void {
+    event.preventDefault();
+    if (this.draggedColumn && this.draggedColumn !== targetColumn) {
+      const currentCols = this.visibleColumns();
+      const oldIndex = currentCols.indexOf(this.draggedColumn);
+      const newIndex = currentCols.indexOf(targetColumn);
+
+      if (oldIndex > -1 && newIndex > -1) {
+        // Create new array with swapped positions
+        const newCols = [...currentCols];
+        // Remove from old position
+        newCols.splice(oldIndex, 1);
+        // Insert at new position
+        newCols.splice(newIndex, 0, this.draggedColumn);
+        
+        // Update signal
+        this.visibleColumns.set(newCols);
+        
+        // Save to preferences (if needed, though presets handle this too)
+      }
+    }
+    this.resetDragState();
+  }
+
+  onColumnDragEnd(event: DragEvent): void {
+    this.resetDragState();
+  }
+
+  private resetDragState(): void {
+    this.draggedColumn = null;
+    this.dragOverColumn = null;
+  }
+
   // --- Column Resizing ---
   protected resizingColumn: string | null = null;
   private resizeStartX = 0;

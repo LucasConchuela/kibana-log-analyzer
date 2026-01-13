@@ -23,179 +23,154 @@ import { AnalyticsService } from '../services/analytics.service';
           <span class="card-label">ERRORS</span>
         </div>
         <div class="summary-card" [class.warning]="analytics.summary().errorRate > 5">
-          <span class="card-value">{{ analytics.summary().errorRate | number:'1.1-1' }}%</span>
-          <span class="card-label">ERROR RATE</span>
+          <span class="card-value">{{ analytics.throughput() | number:'1.1-1' }}</span>
+          <span class="card-label">REQ / MIN</span>
         </div>
-        @if (analytics.summary().successRate > 0) {
-          <div class="summary-card success">
-            <span class="card-value">{{ analytics.summary().successRate | number:'1.1-1' }}%</span>
-            <span class="card-label">2XX RATE</span>
-          </div>
-        }
+        <div class="summary-card success">
+          <span class="card-value">{{ analytics.summary().successRate | number:'1.1-1' }}%</span>
+          <span class="card-label">SUCCESS RATE</span>
+        </div>
         <div class="summary-card">
           <span class="card-value">{{ analytics.summary().avgDuration | number:'1.0-0' }}ms</span>
           <span class="card-label">AVG DURATION</span>
         </div>
       </div>
 
-      <!-- Charts Grid -->
-      <div class="charts-grid">
-        <!-- Left Column: Distribution Charts -->
-        <div class="chart-column">
-          <!-- Log Level Distribution -->
+      <!-- Main Grid -->
+      <div class="analytics-grid">
+        
+        <!-- ROW 1: Distribution Charts -->
+        <div class="grid-row three-col">
+          <!-- Log Level -->
           <div class="chart-container">
             <div class="chart-header">
-              <span class="chart-title">LOG LEVEL DISTRIBUTION</span>
+              <span class="chart-title">LOG LEVELS</span>
             </div>
             <div class="bar-chart">
               @for (item of analytics.levelDistribution(); track item.level) {
                 <div class="bar-row">
                   <span class="bar-label">{{ item.level }}</span>
                   <div class="bar-track">
-                    <div 
-                      class="bar-fill" 
-                      [style.width.%]="item.percentage"
-                      [style.background-color]="item.color"
-                    ></div>
+                    <div class="bar-fill" [style.width.%]="item.percentage" [style.background-color]="item.color"></div>
                   </div>
                   <span class="bar-value">{{ item.count }}</span>
                 </div>
               }
-              @if (analytics.levelDistribution().length === 0) {
-                <div class="empty-state">No data</div>
-              }
             </div>
           </div>
 
-          <!-- HTTP Status Distribution -->
+          <!-- HTTP Status -->
           <div class="chart-container">
             <div class="chart-header">
-              <span class="chart-title">HTTP STATUS CODES</span>
+              <span class="chart-title">HTTP STATUS</span>
             </div>
             <div class="donut-chart-container">
-              @if (analytics.statusDistribution().length > 0) {
-                <svg class="donut-chart" viewBox="0 0 100 100">
-                  @for (segment of getDonutSegments(); track segment.category) {
-                    <circle
-                      class="donut-segment"
-                      cx="50" cy="50" r="35"
-                      [style.stroke]="segment.color"
-                      [style.stroke-dasharray]="segment.dashArray"
-                      [style.stroke-dashoffset]="segment.dashOffset"
-                    />
-                  }
-                  <text x="50" y="48" class="donut-center-text">
-                    {{ getTotalHttpRequests() }}
-                  </text>
-                  <text x="50" y="58" class="donut-center-label">
-                    REQUESTS
-                  </text>
-                </svg>
-                <div class="donut-legend">
-                  @for (item of analytics.statusDistribution(); track item.category) {
-                    <div class="legend-item">
-                      <span class="legend-color" [style.background-color]="item.color"></span>
-                      <span class="legend-label">{{ item.category }}</span>
-                      <span class="legend-value">{{ item.count }} ({{ item.percentage | number:'1.0-0' }}%)</span>
-                    </div>
-                  }
+              <svg class="donut-chart" viewBox="0 0 100 100">
+                @for (segment of getDonutSegments(); track segment.category) {
+                  <circle class="donut-segment" cx="50" cy="50" r="35" [style.stroke]="segment.color" [style.stroke-dasharray]="segment.dashArray" [style.stroke-dashoffset]="segment.dashOffset" />
+                }
+              </svg>
+              <div class="donut-legend">
+                @for (item of analytics.statusDistribution(); track item.category) {
+                  <div class="legend-item">
+                    <span class="legend-color" [style.background-color]="item.color"></span>
+                    <span class="legend-label">{{ item.category }}</span>
+                    <span class="legend-value">{{ item.percentage | number:'1.0-0' }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Methods -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <span class="chart-title">HTTP METHODS</span>
+            </div>
+             <div class="bar-chart">
+              @for (item of analytics.methodDistribution(); track item.method) {
+                <div class="bar-row">
+                  <span class="bar-label">{{ item.method }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="item.percentage" [style.background-color]="item.color"></div>
+                  </div>
+                  <span class="bar-value">{{ item.count }}</span>
                 </div>
-              } @else {
-                <div class="empty-state">No HTTP data</div>
               }
             </div>
           </div>
         </div>
 
-        <!-- Right Column: Evolution Charts -->
-        <div class="chart-column">
-          <!-- Duration Evolution -->
-          @if (analytics.durationEvolution().length > 0) {
+        <!-- ROW 2: Evolution Charts -->
+        <div class="grid-row two-col">
+           <!-- Duration Evolution -->
             <div class="chart-container">
               <div class="chart-header">
-                <span class="chart-title">API DURATION OVER TIME</span>
-                <span class="chart-subtitle">Avg / Max per 5-min bucket</span>
+                <span class="chart-title">LATENCY EVOLUTION (AVG/MAX)</span>
               </div>
               <div class="line-chart">
-                <div class="chart-y-axis">
-                  <span>{{ getMaxDuration() | number:'1.0-0' }}ms</span>
-                  <span>{{ getMaxDuration() / 2 | number:'1.0-0' }}ms</span>
-                  <span>0ms</span>
-                </div>
-                <div class="chart-area">
-                  <svg class="line-chart-svg" viewBox="0 0 100 60" preserveAspectRatio="none">
-                    <!-- Max duration line (faded) -->
-                    <polyline
-                      class="line-max"
-                      [attr.points]="getDurationMaxPolyline()"
-                    />
-                    <!-- Avg duration line -->
-                    <polyline
-                      class="line-avg"
-                      [attr.points]="getDurationAvgPolyline()"
-                    />
-                    <!-- Data points -->
-                    @for (point of analytics.durationEvolution(); track point.label; let i = $index) {
-                      <circle
-                        class="data-point"
-                        [attr.cx]="getXPosition(i, analytics.durationEvolution().length)"
-                        [attr.cy]="getYPosition(point.avgDuration, getMaxDuration())"
-                        r="2"
-                      >
-                        <title>{{ point.label }}: {{ point.avgDuration | number:'1.0-0' }}ms avg, {{ point.maxDuration | number:'1.0-0' }}ms max</title>
-                      </circle>
-                    }
+                <div class="chart-area" style="position: relative; height: 100px; width: 100%;">
+                   <svg class="line-chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <polyline class="line-max" [attr.points]="getDurationMaxPolyline()" />
+                    <polyline class="line-avg" [attr.points]="getDurationAvgPolyline()" />
                   </svg>
                 </div>
               </div>
-              <div class="chart-x-labels">
-                @for (label of getEvolutionLabels(analytics.durationEvolution()); track label) {
-                  <span>{{ label }}</span>
-                }
-              </div>
             </div>
-          }
 
-          <!-- Error Rate Evolution -->
-          @if (analytics.errorRateEvolution().length > 0) {
-            <div class="chart-container">
+            <!-- Error Rate Evolution -->
+             <div class="chart-container">
               <div class="chart-header">
-                <span class="chart-title">ERROR RATE OVER TIME</span>
-                <span class="chart-subtitle">Per 5-min bucket</span>
+                <span class="chart-title">ERROR RATE EVOLUTION</span>
               </div>
-              <div class="error-rate-chart">
-                <div class="chart-bars">
+               <div class="error-rate-chart" style="height: 100px; display: flex; align-items: flex-end; gap: 2px;">
                   @for (bucket of analytics.errorRateEvolution(); track bucket.label) {
-                    <div 
-                      class="error-bar-container"
-                      [title]="bucket.label + ': ' + bucket.errorCount + '/' + bucket.totalCount + ' errors (' + (bucket.errorRate | number:'1.0-0') + '%)'"
-                    >
-                      <div 
-                        class="error-bar"
-                        [style.height.%]="bucket.errorRate"
-                        [class.has-errors]="bucket.errorRate > 0"
-                      ></div>
-                      @if (bucket.errorCount > 0) {
-                        <span class="error-count">{{ bucket.errorCount }}</span>
-                      }
-                    </div>
+                    <div class="error-bar" [style.height.%]="bucket.errorRate" [title]="bucket.label + ': ' + bucket.errorRate + '%'" [class.has-errors]="bucket.errorRate > 0" style="flex: 1; min-width: 4px; background: var(--te-border-light);"></div>
                   }
-                </div>
-              </div>
-              <div class="chart-x-labels">
-                @for (label of getEvolutionLabels(analytics.errorRateEvolution()); track label) {
-                  <span>{{ label }}</span>
+               </div>
+            </div>
+        </div>
+
+        <!-- ROW 3: Latency Histogram -->
+        <div class="chart-container full-width">
+          <div class="chart-header">
+            <span class="chart-title">LATENCY DISTRIBUTION</span>
+            <div class="button-group">
+              @for (size of [25, 50, 100, 250, 500]; track size) {
+                <button 
+                  class="te-button-small" 
+                  [class.active]="analytics.histogramBucketSize() === size"
+                  (click)="analytics.histogramBucketSize.set(size)"
+                >
+                  {{ size }}ms
+                </button>
+              }
+            </div>
+          </div>
+          <div class="histogram-chart">
+            @if (analytics.latencyHistogram().length > 0) {
+              <div class="histogram-bars">
+                @for (bucket of analytics.latencyHistogram(); track bucket.start) {
+                  <div 
+                    class="histogram-bar-container"
+                    [title]="bucket.label + ': ' + bucket.count + ' requests'"
+                  >
+                    <div 
+                      class="histogram-bar" 
+                      [style.height.%]="(bucket.count / getMaxHistogramCount()) * 100"
+                    ></div>
+                    <span class="histogram-label" *ngIf="$index % getHistogramLabelStep() === 0">
+                      {{ bucket.start }}
+                    </span>
+                  </div>
                 }
               </div>
-            </div>
-          }
-
-          @if (analytics.durationEvolution().length === 0 && analytics.errorRateEvolution().length === 0) {
-            <div class="chart-container">
-              <div class="empty-state">Not enough time-series data for evolution charts</div>
-            </div>
-          }
+            } @else {
+              <div class="empty-state">No duration data available</div>
+            }
+          </div>
         </div>
+
       </div>
     </div>
   `,
@@ -205,38 +180,30 @@ import { AnalyticsService } from '../services/analytics.service';
       padding: 16px;
       overflow-y: auto;
       background-color: var(--te-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
     /* Summary Cards */
     .summary-cards {
       display: flex;
       gap: 12px;
-      margin-bottom: 16px;
+      flex-wrap: wrap; /* Safety for small screens */
     }
 
     .summary-card {
       flex: 1;
+      min-width: 120px;
       padding: 12px 16px;
       background-color: var(--te-bg-dark);
       border: 1px solid var(--te-border-light);
       text-align: center;
     }
 
-    .summary-card.error {
-      border-color: #C62828;
-    }
-
-    .summary-card.error .card-value {
-      color: #C62828;
-    }
-
-    .summary-card.warning .card-value {
-      color: #E65100;
-    }
-
-    .summary-card.success .card-value {
-      color: #2E7D32;
-    }
+    .summary-card.error .card-value { color: #C62828; }
+    .summary-card.success .card-value { color: #2E7D32; }
+    .summary-card.warning .card-value { color: #E65100; }
 
     .card-value {
       display: block;
@@ -244,9 +211,12 @@ import { AnalyticsService } from '../services/analytics.service';
       font-size: 1.5rem;
       font-weight: 700;
       color: var(--te-text);
+      line-height: 1.2;
     }
 
     .card-label {
+      display: block;
+      margin-top: 4px;
       font-family: var(--font-sans);
       font-size: 0.6rem;
       font-weight: 600;
@@ -254,267 +224,187 @@ import { AnalyticsService } from '../services/analytics.service';
       color: var(--te-text-muted);
     }
 
-    /* Charts Grid */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .chart-column {
+    /* Grid Layout */
+    .analytics-grid {
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
+    .grid-row {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-row.three-col { grid-template-columns: repeat(3, 1fr); }
+    .grid-row.two-col { grid-template-columns: repeat(2, 1fr); }
+
     .chart-container {
       background-color: var(--te-bg-dark);
       border: 1px solid var(--te-border-light);
-      padding: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0; /* Important for flex/grid overflow */
     }
 
     .chart-header {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--te-border-light);
+      padding-bottom: 8px;
     }
 
     .chart-title {
       font-family: var(--font-sans);
-      font-size: 0.65rem;
+      font-size: 0.7rem;
       font-weight: 600;
       letter-spacing: 0.08em;
       color: var(--te-text-muted);
     }
 
-    .chart-subtitle {
-      font-family: var(--font-mono);
-      font-size: 0.55rem;
-      color: var(--te-text-muted);
-      opacity: 0.7;
-    }
+    /* Visualization Styles */
+    .bar-chart { display: flex; flex-direction: column; gap: 8px; }
+    .bar-row { display: grid; grid-template-columns: 80px 1fr 50px; align-items: center; gap: 12px; }
+    .bar-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--te-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { height: 12px; background: var(--te-bg); flex: 1; border-radius: 2px; overflow: hidden; }
+    .bar-fill { height: 100%; }
+    .bar-value { font-family: var(--font-mono); font-size: 0.65rem; text-align: right; color: var(--te-text-muted); }
 
-    /* Bar Chart */
-    .bar-chart {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
+    .donut-chart-container { display: flex; align-items: center; gap: 24px; justify-content: center; height: 100%; }
+    .donut-chart { width: 100px; height: 100px; transform: rotate(-90deg); flex-shrink: 0; }
+    .donut-segment { fill: none; stroke-width: 14; }
+    .donut-legend { display: flex; flex-direction: column; gap: 6px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-color { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 0 1px var(--te-border-light); }
+    .legend-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--te-text); }
+    .legend-value { font-family: var(--font-mono); font-size: 0.6rem; color: var(--te-text-muted); margin-left: auto; }
 
-    .bar-row {
-      display: grid;
-      grid-template-columns: 70px 1fr 40px;
-      align-items: center;
-      gap: 8px;
-    }
+    .line-chart-svg { width: 100%; height: 100%; overflow: visible; }
+    .line-max { fill: none; stroke: var(--axa-red); stroke-width: 1; stroke-dasharray: 4,4; opacity: 0.6; }
+    .line-avg { fill: none; stroke: var(--axa-blue); stroke-width: 2; vector-effect: non-scaling-stroke; }
+    .error-bar.has-errors { background-color: var(--axa-red) !important; }
 
-    .bar-label {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: var(--te-text);
-    }
-
-    .bar-track {
-      height: 16px;
-      background-color: var(--te-bg);
-      border: 1px solid var(--te-border-light);
-    }
-
-    .bar-fill {
-      height: 100%;
-      transition: width 0.3s ease;
-    }
-
-    .bar-value {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      color: var(--te-text-muted);
-      text-align: right;
-    }
-
-    /* Donut Chart */
-    .donut-chart-container {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .donut-chart {
-      width: 100px;
-      height: 100px;
-      transform: rotate(-90deg);
-    }
-
-    .donut-segment {
-      fill: none;
-      stroke-width: 14;
-    }
-
-    .donut-center-text {
-      font-family: var(--font-mono);
-      font-size: 16px;
-      font-weight: 700;
-      fill: var(--te-text);
-      text-anchor: middle;
-      transform: rotate(90deg);
-      transform-origin: 50% 50%;
-    }
-
-    .donut-center-label {
-      font-family: var(--font-sans);
-      font-size: 5px;
-      fill: var(--te-text-muted);
-      text-anchor: middle;
-      transform: rotate(90deg);
-      transform-origin: 50% 50%;
-    }
-
-    .donut-legend {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .legend-color {
-      width: 12px;
-      height: 12px;
-    }
-
-    .legend-label {
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--te-text);
-    }
-
-    .legend-value {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      color: var(--te-text-muted);
-    }
-
-    /* Line Chart */
+    /* Evolution Charts */
     .line-chart {
       display: flex;
-      height: 120px;
+      height: 140px;
     }
-
-    .chart-y-axis {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding-right: 8px;
-      font-family: var(--font-mono);
-      font-size: 0.55rem;
-      color: var(--te-text-muted);
-      text-align: right;
-      min-width: 50px;
-    }
-
+    
     .chart-area {
       flex: 1;
+      height: 100%;
       border-left: 1px solid var(--te-border-light);
       border-bottom: 1px solid var(--te-border-light);
+      position: relative;
     }
 
-    .line-chart-svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    .line-max {
-      fill: none;
-      stroke: var(--axa-red);
-      stroke-width: 0.5;
-      stroke-dasharray: 2,2;
-      opacity: 0.5;
-    }
-
-    .line-avg {
-      fill: none;
-      stroke: var(--axa-blue);
-      stroke-width: 1.5;
-    }
-
-    .data-point {
-      fill: var(--axa-blue);
-    }
-
-    .data-point:hover {
-      fill: var(--axa-blue-light);
-      r: 3;
-    }
-
-    .chart-x-labels {
-      display: flex;
-      justify-content: space-between;
-      padding-left: 58px;
-      margin-top: 4px;
-      font-family: var(--font-mono);
-      font-size: 0.5rem;
-      color: var(--te-text-muted);
-    }
-
-    /* Error Rate Chart */
     .error-rate-chart {
-      height: 80px;
+      height: 140px;
     }
 
-    .chart-bars {
+    /* Buttons */
+    .button-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .te-button-small {
+      padding: 4px 8px;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: var(--te-text-muted);
+      background-color: transparent;
+      border: 1px solid var(--te-border-light);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s ease;
+    }
+
+    .te-button-small:hover {
+      background-color: var(--te-bg);
+      color: var(--te-text);
+      border-color: var(--te-border);
+    }
+
+    .te-button-small.active {
+      background-color: var(--axa-blue);
+      color: white;
+      border-color: var(--axa-blue);
+    }
+
+    /* Histogram */
+    .histogram-chart {
+      height: 200px;
+      margin-top: 16px;
+    }
+
+    .histogram-bars {
       display: flex;
       align-items: flex-end;
       height: 100%;
-      gap: 4px;
-      padding-left: 58px;
-      border-left: 1px solid var(--te-border-light);
+      gap: 1px;
+      padding-bottom: 24px; /* Space for labels */
       border-bottom: 1px solid var(--te-border-light);
     }
 
-    .error-bar-container {
+    .histogram-bar-container {
       flex: 1;
       height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      align-items: center;
       position: relative;
     }
 
-    .error-bar {
+    .histogram-bar {
       width: 100%;
-      max-width: 20px;
-      min-height: 2px;
-      background-color: var(--te-border-light);
-      transition: height 0.3s ease;
+      background-color: var(--axa-blue);
+      border-top-left-radius: 2px;
+      border-top-right-radius: 2px;
+      opacity: 0.7;
+      transition: height 0.3s ease, background-color 0.2s;
     }
 
-    .error-bar.has-errors {
-      background-color: #C62828;
+    .histogram-bar:hover {
+      opacity: 1;
+      background-color: var(--axa-blue-light);
     }
 
-    .error-count {
+    .histogram-label {
       position: absolute;
-      top: -14px;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
       font-family: var(--font-mono);
       font-size: 0.55rem;
-      color: #C62828;
+      color: var(--te-text-muted);
+      white-space: nowrap;
     }
 
     .empty-state {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--te-text-muted);
-      text-align: center;
-      padding: 24px;
+      background-color: rgba(0,0,0,0.02);
     }
+
+    /* Data Table Styles (Unchanged) */
+    .data-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.65rem; }
+    .data-table th { text-align: left; color: var(--te-text-muted); padding: 4px 8px; border-bottom: 1px solid var(--te-border-light); font-weight: 600; }
+    .data-table td { padding: 4px 8px; color: var(--te-text); border-bottom: 1px solid var(--te-border-light); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .col-url { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .col-msg { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mono { font-family: var(--font-mono); }
+    .mono-dim { font-family: var(--font-mono); color: var(--te-text-muted); }
   `]
 })
 export class AnalyticsPanelComponent {
@@ -586,5 +476,19 @@ export class AnalyticsPanelComponent {
     const step = Math.floor(data.length / 4);
     const indices = [0, step, step * 2, step * 3, data.length - 1];
     return [...new Set(indices)].map(i => data[i]?.label || '').filter(Boolean);
+  }
+
+  getMaxHistogramCount(): number {
+    const data = this.analytics.latencyHistogram();
+    if (data.length === 0) return 1;
+    return Math.max(...data.map(d => d.count));
+  }
+
+  getHistogramLabelStep(): number {
+    const len = this.analytics.latencyHistogram().length;
+    if (len <= 10) return 1;
+    if (len <= 20) return 2;
+    if (len <= 50) return 5;
+    return 10;
   }
 }

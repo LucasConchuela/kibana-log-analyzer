@@ -187,7 +187,16 @@
             <!-- Sticky Header -->
             <div class="table-header">
               @for (column of visibleColumns(); track column) {
-                <div class="th" [ngStyle]="getColumnStyle(column)">
+                <div class="th" 
+                     [ngStyle]="getColumnStyle(column)"
+                     draggable="true"
+                     (dragstart)="onColumnDragStart($event, column)"
+                     (dragover)="onColumnDragOver($event, column)"
+                     (dragleave)="onColumnDragLeave($event)"
+                     (drop)="onColumnDrop($event, column)"
+                     (dragend)="onColumnDragEnd($event)"
+                     [class.dragging]="draggedColumn === column"
+                     [class.drag-over]="dragOverColumn === column">
                   {{ column }}
                   <div class="resize-handle" (mousedown)="onResizeStart($event, column)"></div>
                 </div>
