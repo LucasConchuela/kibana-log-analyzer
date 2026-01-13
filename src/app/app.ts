@@ -186,7 +186,8 @@ export class App {
   // Load sample data
   async loadSampleData(): Promise<void> {
     try {
-      const response = await fetch('/sample-http-logs.json');
+      const url = new URL('sample-http-logs.json', document.baseURI).href;
+      const response = await fetch(url);
       const content = await response.text();
       this.logParser.parseLogFile(content, 'sample-http-logs.json');
     } catch (err) {
